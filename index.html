@@ -1,0 +1,1634 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>نظام شرف المحاسبي</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#f5f5f0;color:#1a1a1a;direction:rtl}
+input,select,textarea{width:100%;padding:8px 10px;border:0.5px solid #ccc;border-radius:8px;font-size:14px;font-family:inherit;background:#fff;color:#1a1a1a;outline:none}
+input:focus,select:focus{border-color:#4a90d9}
+button{padding:8px 16px;border:0.5px solid #ccc;border-radius:8px;background:#fff;cursor:pointer;font-size:13px;font-family:inherit;color:#1a1a1a;transition:background .15s}
+button:hover{background:#f0f0f0}
+button.primary{background:#4a90d9;color:#fff;border-color:#4a90d9}
+button.primary:hover{background:#3a7fc8}
+button.danger{background:#e74c3c;color:#fff;border-color:#e74c3c;font-size:12px;padding:4px 10px}
+.card{background:#fff;border-radius:12px;border:0.5px solid #e0e0e0;padding:16px;margin-bottom:14px}
+.badge{font-size:11px;padding:2px 10px;border-radius:10px;display:inline-block}
+.badge-success{background:#e8f5e9;color:#2e7d32}
+.badge-warning{background:#fff8e1;color:#f57f17}
+.badge-info{background:#e3f2fd;color:#1565c0}
+.badge-danger{background:#ffebee;color:#c62828}
+.badge-admin{background:#f3e5f5;color:#6a1b9a}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden}
+th{padding:9px 10px;text-align:right;font-weight:500;font-size:13px;background:#f5f5f0;border-bottom:0.5px solid #e0e0e0}
+td{padding:8px 10px;font-size:13px;border-bottom:0.5px solid #f0f0f0}
+tr:last-child td{border-bottom:none}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.stat{background:#f5f5f0;border-radius:8px;padding:12px 14px}
+.stat-label{font-size:12px;color:#666;margin-bottom:4px}
+.stat-val{font-size:20px;font-weight:500}
+.green{color:#2e7d32}.red{color:#c62828}.blue{color:#1565c0}.orange{color:#e65100}.purple{color:#6a1b9a}
+h2{font-size:18px;font-weight:500;margin-bottom:16px}
+.sep{border:none;border-top:0.5px solid #e0e0e0;margin:10px 0}
+.tabs-wrap{overflow-x:auto;white-space:nowrap;background:#fff;border-bottom:0.5px solid #e0e0e0}
+.tab-btn{padding:10px 13px;border:none;background:none;cursor:pointer;font-size:12px;color:#666;border-bottom:2px solid transparent;white-space:nowrap;font-family:inherit}
+.tab-btn.active{color:#4a90d9;border-bottom-color:#4a90d9}
+.header{background:#fff;border-bottom:0.5px solid #e0e0e0;padding:0 16px;display:flex;align-items:center;justify-content:space-between;height:52px;position:sticky;top:0;z-index:10}
+.avatar{width:34px;height:34px;border-radius:50%;background:#e3f2fd;display:flex;align-items:center;justify-content:center;color:#1565c0;font-weight:500;font-size:15px}
+.content{padding:16px;max-width:900px;margin:0 auto}
+.row-form{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.row-form>*{flex:1;min-width:120px}
+/* Login */
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1565c0,#4a90d9)}
+.login-box{background:#fff;border-radius:16px;padding:36px 32px;width:100%;max-width:380px;box-shadow:0 8px 32px rgba(0,0,0,.15)}
+.login-logo{width:64px;height:64px;border-radius:50%;background:#e3f2fd;display:flex;align-items:center;justify-content:center;color:#1565c0;font-size:28px;font-weight:700;margin:0 auto 20px}
+@media print{.no-print{display:none!important}.print-only{display:block!important}}
+.print-only{display:none}
+.log-entry{font-size:12px;padding:5px 10px;border-bottom:0.5px solid #f0f0f0;display:flex;gap:8px;align-items:flex-start}
+.log-user{background:#e3f2fd;color:#1565c0;padding:1px 7px;border-radius:8px;font-size:11px;white-space:nowrap}
+.log-action{color:#333;flex:1}
+.log-time{color:#aaa;font-size:11px;white-space:nowrap}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useCallback,useRef}=React;
+const fmt=n=>(Number(n)||0).toLocaleString('ar-EG',{minimumFractionDigits:2,maximumFractionDigits:2});
+const today=()=>new Date().toISOString().split('T')[0];
+const now=()=>new Date().toLocaleString('ar-EG');
+const uid=()=>Math.random().toString(36).slice(2,9);
+
+/* ── Default users ── */
+const DEFAULT_USERS=[
+  {id:'u1',username:'admin',password:'admin123',name:'شرف (مدير)',role:'admin',active:true,createdAt:today()},
+];
+
+const INIT={
+  accounts:[
+    {id:'a1',code:'1000',name:'الأصول المتداولة',type:'asset',parent:null},
+    {id:'a2',code:'1100',name:'النقدية والبنوك',type:'asset',parent:'a1'},
+    {id:'a3',code:'1200',name:'المخزون',type:'asset',parent:'a1'},
+    {id:'a4',code:'1300',name:'ذمم مدينة',type:'asset',parent:'a1'},
+    {id:'a5',code:'2000',name:'الخصوم المتداولة',type:'liability',parent:null},
+    {id:'a6',code:'2100',name:'ذمم دائنة',type:'liability',parent:'a5'},
+    {id:'a7',code:'3000',name:'حقوق الملكية',type:'equity',parent:null},
+    {id:'a8',code:'4000',name:'الإيرادات',type:'revenue',parent:null},
+    {id:'a9',code:'4100',name:'إيرادات المبيعات',type:'revenue',parent:'a8'},
+    {id:'a10',code:'5000',name:'المصروفات',type:'expense',parent:null},
+    {id:'a11',code:'5100',name:'تكلفة البضاعة',type:'expense',parent:'a10'},
+    {id:'a12',code:'5200',name:'مصاريف تشغيلية',type:'expense',parent:'a10'},
+  ],
+  inventory:[],customers:[],suppliers:[],
+  sales:[],purchases:[],quotes:[],
+  expenses:[],cashflow:[],partners:[],
+  inventory_moves:[],activityLog:[]
+};
+
+function loadDB(){try{const r=localStorage.getItem('sharaf_v3');return r?JSON.parse(r):INIT;}catch{return INIT;}}
+function saveDB(d){try{localStorage.setItem('sharaf_v3',JSON.stringify(d));}catch{}}
+function loadUsers(){try{const r=localStorage.getItem('sharaf_users');return r?JSON.parse(r):DEFAULT_USERS;}catch{return DEFAULT_USERS;}}
+function saveUsers(u){try{localStorage.setItem('sharaf_users',JSON.stringify(u));}catch{}}
+
+const TABS_ADMIN=[
+  {id:'home',label:'🏠 الرئيسية'},
+  {id:'accounts',label:'🌳 شجرة الحسابات'},
+  {id:'inventory',label:'📦 المخزون'},
+  {id:'inv_moves',label:'🔄 حركة المخزون'},
+  {id:'customers',label:'👥 العملاء'},
+  {id:'suppliers',label:'🚚 الموردون'},
+  {id:'sales',label:'🛒 المبيعات'},
+  {id:'purchases',label:'📋 المشتريات'},
+  {id:'quotes',label:'🏷️ عروض الأسعار'},
+  {id:'expenses',label:'💸 المصاريف'},
+  {id:'cashflow',label:'💰 الصادر والوارد'},
+  {id:'partnership',label:'🤝 الشراكة'},
+  {id:'statement',label:'📊 كشف الحساب'},
+  {id:'income',label:'📈 قائمة الدخل'},
+  {id:'balance',label:'⚖️ الميزانية'},
+  {id:'users',label:'👤 المستخدمون'},
+  {id:'activity',label:'📋 سجل النشاط'},
+  {id:'opening',label:'🏦 الرصيد الافتتاحي'},
+  {id:'closing',label:'📅 إقفال السنة'},
+  {id:'backup',label:'💾 البيك أب'},
+];
+const TABS_USER=TABS_ADMIN.filter(t=>!['users','backup'].includes(t.id));
+
+/* ══════════════════════════════════════════════════ */
+function App(){
+  const [db,setDb]=useState(loadDB);
+  const [users,setUsers]=useState(loadUsers);
+  const [currentUser,setCurrentUser]=useState(null);
+  const [tab,setTab]=useState('home');
+
+  const updateDB=useCallback((fn,action='')=>{
+    setDb(prev=>{
+      const next=fn(prev);
+      if(action&&currentUser){
+        const log={id:uid(),userId:currentUser.id,userName:currentUser.name,action,time:now(),date:today()};
+        next.activityLog=[...(next.activityLog||[]),log];
+      }
+      saveDB(next);
+      return next;
+    });
+  },[currentUser]);
+
+  const updateUsers=useCallback(fn=>{
+    setUsers(prev=>{const next=fn(prev);saveUsers(next);return next;});
+  },[]);
+
+  const login=(username,password)=>{
+    const u=users.find(u=>u.username===username&&u.password===password&&u.active!==false);
+    if(u){
+      setCurrentUser(u);
+      const log={id:uid(),userId:u.id,userName:u.name,action:'تسجيل دخول',time:now(),date:today()};
+      setDb(prev=>{const next={...prev,activityLog:[...(prev.activityLog||[]),log]};saveDB(next);return next;});
+      return true;
+    }
+    return false;
+  };
+
+  const logout=()=>{
+    const log={id:uid(),userId:currentUser.id,userName:currentUser.name,action:'تسجيل خروج',time:now(),date:today()};
+    setDb(prev=>{const next={...prev,activityLog:[...(prev.activityLog||[]),log]};saveDB(next);return next;});
+    setCurrentUser(null);setTab('home');
+  };
+
+  if(!currentUser) return <Login onLogin={login} users={users}/>;
+
+  const TABS=currentUser.role==='admin'?TABS_ADMIN:TABS_USER;
+  const pages={
+    home:<Home data={db}/>,
+    accounts:<Accounts data={db} update={updateDB} user={currentUser}/>,
+    inventory:<Inventory data={db} update={updateDB} user={currentUser}/>,
+    inv_moves:<InvMoves data={db} update={updateDB} user={currentUser}/>,
+    customers:<Parties data={db} update={updateDB} kind="customers" label="العملاء" user={currentUser}/>,
+    suppliers:<Parties data={db} update={updateDB} kind="suppliers" label="الموردون" user={currentUser}/>,
+    sales:<Invoices data={db} update={updateDB} kind="sales" user={currentUser}/>,
+    purchases:<Invoices data={db} update={updateDB} kind="purchases" user={currentUser}/>,
+    quotes:<Quotes data={db} update={updateDB} user={currentUser}/>,
+    expenses:<Expenses data={db} update={updateDB} user={currentUser}/>,
+    cashflow:<Cashflow data={db} update={updateDB} user={currentUser}/>,
+    partnership:<Partnership data={db} update={updateDB} user={currentUser}/>,
+    statement:<Statement data={db}/>,
+    income:<Income data={db}/>,
+    balance:<Balance data={db}/>,
+    users:<Users users={users} updateUsers={updateUsers} currentUser={currentUser} db={db} updateDB={updateDB}/>,
+    activity:<ActivityLog data={db} users={users}/>,
+    opening:<Opening data={db} update={updateDB} user={currentUser}/>,
+    closing:<Closing data={db} update={updateDB} user={currentUser}/>,
+    backup:<Backup data={db} update={updateDB} user={currentUser}/>,
+  };
+
+  return(
+    <div>
+      <div className="header no-print">
+        <div style={{display:'flex',alignItems:'center',gap:10}}>
+          <div className="avatar">ش</div>
+          <div>
+            <div style={{fontWeight:500,fontSize:15,lineHeight:1.2}}>نظام شرف المحاسبي</div>
+            <div style={{fontSize:11,color:'#888'}}>{today()}</div>
+          </div>
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:10}}>
+          <div style={{textAlign:'left'}}>
+            <div style={{fontSize:13,fontWeight:500}}>{currentUser.name}</div>
+            <span className={'badge '+(currentUser.role==='admin'?'badge-admin':'badge-info')}>{currentUser.role==='admin'?'مدير':'مستخدم'}</span>
+          </div>
+          <button onClick={logout} style={{fontSize:12,padding:'5px 12px',background:'#ffebee',border:'0.5px solid #ef9a9a',color:'#c62828'}}>خروج</button>
+        </div>
+      </div>
+      <div className="tabs-wrap no-print">
+        {TABS.map(t=><button key={t.id} className={'tab-btn'+(tab===t.id?' active':'')} onClick={()=>setTab(t.id)}>{t.label}</button>)}
+      </div>
+      <div className="content">{pages[tab]||<Home data={db}/>}</div>
+    </div>
+  );
+}
+
+/* ══ LOGIN ══ */
+function Login({onLogin}){
+  const [u,setU]=useState('');const [p,setP]=useState('');const [err,setErr]=useState('');const [show,setShow]=useState(false);
+  const submit=()=>{if(onLogin(u,p)){setErr('');}else{setErr('اسم المستخدم أو كلمة السر غلط!');}}
+  return(
+    <div className="login-wrap">
+      <div className="login-box">
+        <div className="login-logo">ش</div>
+        <div style={{textAlign:'center',marginBottom:24}}>
+          <div style={{fontSize:20,fontWeight:700,marginBottom:4}}>نظام شرف المحاسبي</div>
+          <div style={{fontSize:13,color:'#888'}}>سجل دخولك للمتابعة</div>
+        </div>
+        {err&&<div style={{background:'#ffebee',border:'0.5px solid #ef9a9a',borderRadius:8,padding:10,marginBottom:14,color:'#c62828',fontSize:13,textAlign:'center'}}>{err}</div>}
+        <div style={{marginBottom:12}}>
+          <div style={{fontSize:13,fontWeight:500,marginBottom:5}}>اسم المستخدم</div>
+          <input placeholder="username" value={u} onChange={e=>setU(e.target.value)} onKeyDown={e=>e.key==='Enter'&&submit()}/>
+        </div>
+        <div style={{marginBottom:20}}>
+          <div style={{fontSize:13,fontWeight:500,marginBottom:5}}>كلمة السر</div>
+          <div style={{position:'relative'}}>
+            <input type={show?'text':'password'} placeholder="password" value={p} onChange={e=>setP(e.target.value)} onKeyDown={e=>e.key==='Enter'&&submit()}/>
+            <button onClick={()=>setShow(v=>!v)} style={{position:'absolute',left:8,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',fontSize:16,cursor:'pointer',padding:0}}>{show?'🙈':'👁️'}</button>
+          </div>
+        </div>
+        <button className="primary" onClick={submit} style={{width:'100%',padding:11,fontSize:15}}>دخول</button>
+        <div style={{marginTop:16,padding:12,background:'#f5f5f0',borderRadius:8,fontSize:12,color:'#666'}}>
+          <div style={{fontWeight:500,marginBottom:4}}>بيانات الدخول الافتراضية:</div>
+          <div>المستخدم: <strong>admin</strong></div>
+          <div>كلمة السر: <strong>admin123</strong></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══ USERS MANAGEMENT ══ */
+function Users({users,updateUsers,currentUser,db,updateDB}){
+  const [f,setF]=useState({username:'',password:'',name:'',role:'user'});
+  const [editId,setEditId]=useState(null);
+  const [editF,setEditF]=useState({});
+
+  const add=()=>{
+    if(!f.username||!f.password||!f.name)return;
+    if(users.find(u=>u.username===f.username)){alert('اسم المستخدم موجود بالفعل!');return;}
+    updateUsers(u=>[...u,{id:uid(),...f,active:true,createdAt:today()}]);
+    updateDB(d=>d,'إضافة مستخدم: '+f.name);
+    setF({username:'',password:'',name:'',role:'user'});
+  };
+
+  const toggle=(id)=>{
+    if(id===currentUser.id){alert('لا يمكنك تعطيل حسابك!');return;}
+    updateUsers(u=>u.map(x=>x.id===id?{...x,active:!x.active}:x));
+  };
+
+  const del=(id)=>{
+    if(id===currentUser.id){alert('لا يمكنك حذف حسابك!');return;}
+    if(window.confirm('حذف المستخدم نهائياً؟'))
+      updateUsers(u=>u.filter(x=>x.id!==id));
+  };
+
+  const saveEdit=(id)=>{
+    updateUsers(u=>u.map(x=>x.id===id?{...x,...editF}:x));
+    setEditId(null);
+    updateDB(d=>d,'تعديل بيانات مستخدم');
+  };
+
+  const userStats=(uid)=>{
+    const logs=(db.activityLog||[]).filter(l=>l.userId===uid);
+    const sales=(db.sales||[]).filter(s=>s.createdBy===uid).length;
+    const purchases=(db.purchases||[]).filter(s=>s.createdBy===uid).length;
+    const expenses=(db.expenses||[]).filter(e=>e.createdBy===uid).length;
+    return{logs:logs.length,sales,purchases,expenses,lastLogin:logs.filter(l=>l.action==='تسجيل دخول').slice(-1)[0]?.time||'—'};
+  };
+
+  return(
+    <div>
+      <h2>👤 إدارة المستخدمين</h2>
+      <div className="card">
+        <div style={{fontWeight:500,marginBottom:10}}>إضافة مستخدم جديد</div>
+        <div className="grid3" style={{marginBottom:8}}>
+          <input placeholder="الاسم الكامل *" value={f.name} onChange={e=>setF(p=>({...p,name:e.target.value}))}/>
+          <input placeholder="اسم المستخدم *" value={f.username} onChange={e=>setF(p=>({...p,username:e.target.value}))}/>
+          <input placeholder="كلمة السر *" value={f.password} onChange={e=>setF(p=>({...p,password:e.target.value}))}/>
+          <select value={f.role} onChange={e=>setF(p=>({...p,role:e.target.value}))}>
+            <option value="user">مستخدم عادي</option>
+            <option value="admin">مدير</option>
+          </select>
+          <button className="primary" onClick={add}>➕ إضافة</button>
+        </div>
+        <div style={{fontSize:12,color:'#888'}}>💡 المدير: صلاحية كاملة + إدارة المستخدمين والبيك أب. المستخدم العادي: إدخال البيانات فقط.</div>
+      </div>
+
+      {users.map(u=>{
+        const stats=userStats(u.id);
+        return(
+          <div key={u.id} className="card" style={{border:u.id===currentUser.id?'1.5px solid #4a90d9':'0.5px solid #e0e0e0'}}>
+            {editId===u.id?(
+              <div>
+                <div style={{fontWeight:500,marginBottom:10}}>تعديل بيانات {u.name}</div>
+                <div className="grid3" style={{marginBottom:8}}>
+                  <input placeholder="الاسم" value={editF.name||u.name} onChange={e=>setEditF(p=>({...p,name:e.target.value}))}/>
+                  <input placeholder="كلمة سر جديدة" value={editF.password||''} onChange={e=>setEditF(p=>({...p,password:e.target.value}))}/>
+                  <select value={editF.role||u.role} onChange={e=>setEditF(p=>({...p,role:e.target.value}))}>
+                    <option value="user">مستخدم عادي</option>
+                    <option value="admin">مدير</option>
+                  </select>
+                </div>
+                <div style={{display:'flex',gap:8}}>
+                  <button className="primary" onClick={()=>saveEdit(u.id)}>حفظ</button>
+                  <button onClick={()=>setEditId(null)}>إلغاء</button>
+                </div>
+              </div>
+            ):(
+              <div>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap',gap:8}}>
+                  <div>
+                    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
+                      <div style={{fontWeight:500,fontSize:15}}>{u.name}</div>
+                      <span className={'badge '+(u.role==='admin'?'badge-admin':'badge-info')}>{u.role==='admin'?'👑 مدير':'👤 مستخدم'}</span>
+                      <span className={'badge '+(u.active!==false?'badge-success':'badge-danger')}>{u.active!==false?'✅ نشط':'❌ معطّل'}</span>
+                      {u.id===currentUser.id&&<span className="badge" style={{background:'#e3f2fd',color:'#1565c0'}}>أنت</span>}
+                    </div>
+                    <div style={{fontSize:13,color:'#666'}}>@{u.username} &nbsp;|&nbsp; منذ: {u.createdAt}</div>
+                  </div>
+                  {currentUser.role==='admin'&&(
+                    <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+                      <button onClick={()=>{setEditId(u.id);setEditF({});}} style={{fontSize:12,padding:'4px 10px',background:'#e3f2fd',border:'0.5px solid #90caf9',color:'#1565c0'}}>✏️ تعديل</button>
+                      <button onClick={()=>toggle(u.id)} style={{fontSize:12,padding:'4px 10px',background:u.active!==false?'#fff8e1':'#e8f5e9',border:'0.5px solid #ccc',color:u.active!==false?'#e65100':'#2e7d32'}}>{u.active!==false?'تعطيل':'تفعيل'}</button>
+                      {u.id!==currentUser.id&&<button className="danger" onClick={()=>del(u.id)}>حذف</button>}
+                    </div>
+                  )}
+                </div>
+                <hr className="sep"/>
+                <div className="grid3" style={{marginTop:4}}>
+                  <div style={{fontSize:12}}><span style={{color:'#888'}}>فواتير بيع: </span><strong>{stats.sales}</strong></div>
+                  <div style={{fontSize:12}}><span style={{color:'#888'}}>فواتير شراء: </span><strong>{stats.purchases}</strong></div>
+                  <div style={{fontSize:12}}><span style={{color:'#888'}}>مصاريف: </span><strong>{stats.expenses}</strong></div>
+                  <div style={{fontSize:12}}><span style={{color:'#888'}}>إجمالي الإجراءات: </span><strong>{stats.logs}</strong></div>
+                  <div style={{fontSize:12,gridColumn:'span 2'}}><span style={{color:'#888'}}>آخر دخول: </span><strong>{stats.lastLogin}</strong></div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ══ ACTIVITY LOG ══ */
+function ActivityLog({data,users}){
+  const [filter,setFilter]=useState('all');
+  const [dateF,setDateF]=useState('');
+  const logs=[...(data.activityLog||[])].reverse();
+  const filtered=logs.filter(l=>{
+    if(filter!=='all'&&l.userId!==filter)return false;
+    if(dateF&&l.date!==dateF)return false;
+    return true;
+  });
+  const actionColor=(a)=>{
+    if(a.includes('إضافة')||a.includes('حفظ'))return'green';
+    if(a.includes('حذف'))return'red';
+    if(a.includes('تعديل'))return'blue';
+    if(a.includes('دخول'))return'purple';
+    return'';
+  };
+  return(
+    <div>
+      <h2>📋 سجل النشاط</h2>
+      <div className="card" style={{marginBottom:14}}>
+        <div className="row-form">
+          <select value={filter} onChange={e=>setFilter(e.target.value)}>
+            <option value="all">كل المستخدمين</option>
+            {users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}
+          </select>
+          <input type="date" value={dateF} onChange={e=>setDateF(e.target.value)} placeholder="فلتر بالتاريخ"/>
+          <button onClick={()=>{setFilter('all');setDateF('');}}>مسح الفلتر</button>
+        </div>
+        <div style={{fontSize:13,color:'#666',marginTop:6}}>إجمالي: {filtered.length} إجراء</div>
+      </div>
+      <div style={{background:'#fff',borderRadius:12,border:'0.5px solid #e0e0e0',overflow:'hidden'}}>
+        {filtered.length===0&&<div style={{padding:20,textAlign:'center',color:'#aaa'}}>لا توجد سجلات</div>}
+        {filtered.map(l=>(
+          <div key={l.id} className="log-entry">
+            <span className="log-user">{l.userName}</span>
+            <span className={'log-action '+(actionColor(l.action))}>{l.action}</span>
+            <span className="log-time">{l.time}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ══ HOME ══ */
+function Home({data}){
+  const td=today(),tm=td.slice(0,7);
+  const salesD=(data.sales||[]).filter(s=>s.date===td).reduce((a,s)=>a+(s.total||0),0);
+  const salesM=(data.sales||[]).filter(s=>s.date?.slice(0,7)===tm).reduce((a,s)=>a+(s.total||0),0);
+  const profD=(data.sales||[]).filter(s=>s.date===td).reduce((a,s)=>a+(s.profit||0),0);
+  const profM=(data.sales||[]).filter(s=>s.date?.slice(0,7)===tm).reduce((a,s)=>a+(s.profit||0),0);
+  const expD=(data.expenses||[]).filter(e=>e.date===td).reduce((a,e)=>a+(e.amount||0),0);
+  const cashIn=(data.cashflow||[]).filter(c=>c.type==='in').reduce((a,c)=>a+c.amount,0);
+  const cashOut=(data.cashflow||[]).filter(c=>c.type==='out').reduce((a,c)=>a+c.amount,0);
+  const low=(data.inventory||[]).filter(i=>i.qty<=(i.minQty||5));
+  const stats=[
+    {l:'مبيعات اليوم',v:salesD,c:'blue'},{l:'مبيعات الشهر',v:salesM,c:'blue'},
+    {l:'أرباح اليوم',v:profD,c:profD>=0?'green':'red'},{l:'أرباح الشهر',v:profM,c:profM>=0?'green':'red'},
+    {l:'مصاريف اليوم',v:expD,c:'red'},{l:'رصيد الخزينة',v:cashIn-cashOut,c:cashIn-cashOut>=0?'green':'red'},
+  ];
+  return(
+    <div>
+      <h2>لوحة التحكم</h2>
+      <div className="grid3" style={{marginBottom:16}}>
+        {stats.map(s=><div key={s.l} className="stat"><div className="stat-label">{s.l}</div><div className={'stat-val '+s.c}>{fmt(s.v)}<span style={{fontSize:12,fontWeight:400}}> ج.م</span></div></div>)}
+      </div>
+      {low.length>0&&<div style={{background:'#fff8e1',border:'0.5px solid #f9a825',borderRadius:10,padding:12,marginBottom:14}}>
+        <div style={{fontWeight:500,color:'#e65100',marginBottom:6}}>⚠️ تحذير: مخزون منخفض</div>
+        {low.map(i=><div key={i.id} style={{fontSize:13,color:'#e65100'}}>{i.name} — الكمية المتبقية: {i.qty} {i.unit}</div>)}
+      </div>}
+      <div className="card">
+        <div style={{fontWeight:500,marginBottom:10}}>آخر المبيعات</div>
+        {!(data.sales||[]).length&&<div style={{color:'#aaa',fontSize:13}}>لا توجد مبيعات بعد</div>}
+        {[...(data.sales||[])].reverse().slice(0,6).map(s=>(
+          <div key={s.id} style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'0.5px solid #f0f0f0',fontSize:13}}>
+            <span>{s.customerName||'نقدي'} | {s.date} {s.createdByName&&<span style={{fontSize:11,color:'#888'}}>({s.createdByName})</span>}</span>
+            <span className="green" style={{fontWeight:500}}>{fmt(s.total)} ج.م</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ══ ACCOUNTS ══ */
+function Accounts({data,update,user}){
+  const [f,setF]=useState({code:'',name:'',type:'asset',parent:''});
+  const types={asset:'أصل',liability:'خصم',equity:'حقوق ملكية',revenue:'إيراد',expense:'مصروف'};
+  const add=()=>{
+    if(!f.code||!f.name)return;
+    update(d=>({...d,accounts:[...d.accounts,{id:uid(),...f,parent:f.parent||null,createdBy:user.id,createdByName:user.name}]}),'إضافة حساب: '+f.name);
+    setF({code:'',name:'',type:'asset',parent:''});
+  };
+  const del=id=>update(d=>({...d,accounts:d.accounts.filter(a=>a.id!==id)}),'حذف حساب');
+  const roots=data.accounts.filter(a=>!a.parent);
+  const children=pid=>data.accounts.filter(a=>a.parent===pid);
+  const Node=({a,depth=0})=>(
+    <div>
+      <div style={{display:'flex',alignItems:'center',gap:8,padding:'7px 10px',paddingRight:depth*22+10,borderBottom:'0.5px solid #f0f0f0',fontSize:13}}>
+        <span style={{color:'#aaa',minWidth:55,fontFamily:'monospace'}}>{a.code}</span>
+        <span style={{flex:1}}>{depth>0?'└ ':''}{a.name}</span>
+        <span className={'badge badge-info'}>{types[a.type]}</span>
+        {a.createdByName&&<span style={{fontSize:11,color:'#aaa'}}>{a.createdByName}</span>}
+        <button className="danger" onClick={()=>del(a.id)}>✕</button>
+      </div>
+      {children(a.id).map(c=><Node key={c.id} a={c} depth={depth+1}/>)}
+    </div>
+  );
+  return(
+    <div>
+      <h2>🌳 شجرة الحسابات</h2>
+      <div className="card">
+        <div style={{fontWeight:500,marginBottom:10}}>إضافة حساب جديد</div>
+        <div className="row-form">
+          <input placeholder="الكود" value={f.code} onChange={e=>setF(p=>({...p,code:e.target.value}))}/>
+          <input placeholder="اسم الحساب *" value={f.name} onChange={e=>setF(p=>({...p,name:e.target.value}))}/>
+          <select value={f.type} onChange={e=>setF(p=>({...p,type:e.target.value}))}>
+            {Object.entries(types).map(([k,v])=><option key={k} value={k}>{v}</option>)}
+          </select>
+          <select value={f.parent} onChange={e=>setF(p=>({...p,parent:e.target.value}))}>
+            <option value="">حساب رئيسي</option>
+            {data.accounts.map(a=><option key={a.id} value={a.id}>{a.code} - {a.name}</option>)}
+          </select>
+          <button className="primary" onClick={add}>إضافة</button>
+        </div>
+      </div>
+      <div style={{background:'#fff',borderRadius:12,border:'0.5px solid #e0e0e0',overflow:'hidden'}}>
+        {roots.map(r=><Node key={r.id} a={r}/>)}
+      </div>
+    </div>
+  );
+}
+
+/* ══ INVENTORY ══ */
+function Inventory({data,update,user}){
+  const [f,setF]=useState({name:'',code:'',unit:'قطعة',buyPrice:'',sellPrice:'',qty:'',minQty:''});
+  const add=()=>{
+    if(!f.name)return;
+    update(d=>({...d,inventory:[...d.inventory,{id:uid(),...f,buyPrice:+f.buyPrice,sellPrice:+f.sellPrice,qty:+f.qty,minQty:+f.minQty,createdBy:user.id,createdByName:user.name}]}),'إضافة صنف: '+f.name);
+    setF({name:'',code:'',unit:'قطعة',buyPrice:'',sellPrice:'',qty:'',minQty:''});
+  };
+  const del=id=>update(d=>({...d,inventory:d.inventory.filter(i=>i.id!==id)}),'حذف صنف');
+  return(
+    <div>
+      <h2>📦 المخزون والأصناف</h2>
+      <div className="card">
+        <div style={{fontWeight:500,marginBottom:10}}>إضافة صنف جديد</div>
+        <div className="grid3" style={{marginBottom:8}}>
+          <input placeholder="اسم الصنف *" value={f.name} onChange={e=>setF(p=>({...p,name:e.target.value}))}/>
+          <input placeholder="الكود/الباركود" value={f.code} onChange={e=>setF(p=>({...p,code:e.target.value}))}/>
+          <input placeholder="الوحدة" value={f.unit} onChange={e=>setF(p=>({...p,unit:e.target.value}))}/>
+          <input placeholder="سعر الشراء" type="number" value={f.buyPrice} onChange={e=>setF(p=>({...p,buyPrice:e.target.value}))}/>
+          <input placeholder="سعر البيع" type="number" value={f.sellPrice} onChange={e=>setF(p=>({...p,sellPrice:e.target.value}))}/>
+          <input placeholder="الكمية الأولية" type="number" value={f.qty} onChange={e=>setF(p=>({...p,qty:e.target.value}))}/>
+          <input placeholder="حد الإنذار" type="number" value={f.minQty} onChange={e=>setF(p=>({...p,minQty:e.target.value}))}/>
+        </div>
+        <button className="primary" onClick={add}>إضافة صنف</button>
+      </div>
+      <div style={{overflowX:'auto'}}>
+        <table>
+          <thead><tr>{['الكود','الصنف','الوحدة','سعر الشراء','سعر البيع','الكمية','هامش الربح','أضافه',''].map(h=><th key={h}>{h}</th>)}</tr></thead>
+          <tbody>
+            {(data.inventory||[]).map(i=>(
+              <tr key={i.id} style={{background:i.qty<=(i.minQty||5)?'#fff8e1':''}}>
+                <td>{i.code}</td><td style={{fontWeight:500}}>{i.name}</td><td>{i.unit}</td>
+                <td>{fmt(i.buyPrice)}</td><td>{fmt(i.sellPrice)}</td>
+                <td className={i.qty<=(i.minQty||5)?'orange':''}>{i.qty}</td>
+                <td className="green">{fmt(i.sellPrice-i.buyPrice)}</td>
+                <td style={{fontSize:11,color:'#888'}}>{i.createdByName||'—'}</td>
+                <td><button className="danger" onClick={()=>del(i.id)}>حذف</button></td>
+              </tr>
+            ))}
+            {!(data.inventory||[]).length&&<tr><td colSpan={9} style={{textAlign:'center',color:'#aaa',padding:20}}>لا توجد أصناف</td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+/* ══ INV MOVES ══ */
+function InvMoves({data,update,user}){
+  const [f,setF]=useState({item:'',type:'in',qty:'',note:'',date:today()});
+  const add=()=>{
+    const item=(data.inventory||[]).find(i=>i.id===f.item);
+    if(!item||!f.qty)return;
+    const m={id:uid(),itemId:f.item,itemName:item.name,type:f.type,qty:+f.qty,note:f.note,date:f.date,createdBy:user.id,createdByName:user.name};
+    update(d=>({...d,
+      inventory:d.inventory.map(i=>i.id===f.item?{...i,qty:i.qty+(f.type==='in'?+f.qty:-+f.qty)}:i),
+      inventory_moves:[...(d.inventory_moves||[]),m]
+    }),'حركة مخزون: '+item.name+' '+(f.type==='in'?'وارد':'صادر'));
+    setF({item:'',type:'in',qty:'',note:'',date:today()});
+  };
+  const moves=data.inventory_moves||[];
+  return(
+    <div>
+      <h2>🔄 حركة المخزون</h2>
+      <div className="card">
+        <div className="row-form">
+          <select value={f.item} onChange={e=>setF(p=>({...p,item:e.target.value}))}>
+            <option value="">اختر صنف</option>
+            {(data.inventory||[]).map(i=><option key={i.id} value={i.id}>{i.name} (الكمية: {i.qty})</option>)}
+          </select>
+          <select value={f.type} onChange={e=>setF(p=>({...p,type:e.target.value}))}>
+            <option value="in">وارد ➕</option><option value="out">صادر ➖</option>
+          </select>
+          <input placeholder="الكمية" type="number" value={f.qty} onChange={e=>setF(p=>({...p,qty:e.target.value}))}/>
+          <input placeholder="ملاحظة" value={f.note} onChange={e=>setF(p=>({...p,note:e.target.value}))}/>
+          <input type="date" value={f.date} onChange={e=>setF(p=>({...p,date:e.target.value}))}/>
+          <button className="primary" onClick={add}>تسجيل</button>
+        </div>
+      </div>
+      <table>
+        <thead><tr>{['التاريخ','الصنف','النوع','الكمية','ملاحظة','بواسطة'].map(h=><th key={h}>{h}</th>)}</tr></thead>
+        <tbody>
+          {[...moves].reverse().map(m=>(
+            <tr key={m.id}>
+              <td>{m.date}</td><td>{m.itemName}</td>
+              <td className={m.type==='in'?'green':'red'}>{m.type==='in'?'وارد ➕':'صادر ➖'}</td>
+              <td>{m.qty}</td><td>{m.note}</td>
+              <td style={{fontSize:11,color:'#888'}}>{m.createdByName||'—'}</td>
+            </tr>
+          ))}
+          {!moves.length&&<tr><td colSpan={6} style={{textAlign:'center',color:'#aaa',padding:20}}>لا توجد حركات</td></tr>}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/* ══ PARTIES ══ */
+function Parties({data,update,kind,label,user}){
+  const [f,setF]=useState({name:'',phone:'',address:'',notes:'',balance:''});
+  const list=data[kind]||[];
+  const add=()=>{
+    if(!f.name)return;
+    update(d=>({...d,[kind]:[...(d[kind]||[]),{id:uid(),...f,balance:+f.balance||0,createdBy:user.id,createdByName:user.name}]}),'إضافة '+label.slice(0,-1)+': '+f.name);
+    setF({name:'',phone:'',address:'',notes:'',balance:''});
+  };
+  const del=id=>update(d=>({...d,[kind]:d[kind].filter(p=>p.id!==id)}),'حذف من '+label);
+  return(
+    <div>
+      <h2>{label}</h2>
+      <div className="card">
+        <div style={{fontWeight:500,marginBottom:10}}>إضافة {kind==='customers'?'عميل':'مورد'}</div>
+        <div className="grid3" style={{marginBottom:8}}>
+          <input placeholder="الاسم *" value={f.name} onChange={e=>setF(p=>({...p,name:e.target.value}))}/>
+          <input placeholder="الهاتف / الواتساب" value={f.phone} onChange={e=>setF(p=>({...p,phone:e.target.value}))}/>
+          <input placeholder="العنوان" value={f.address} onChange={e=>setF(p=>({...p,address:e.target.value}))}/>
+          <input placeholder="رصيد ابتدائي" type="number" value={f.balance} onChange={e=>setF(p=>({...p,balance:e.target.value}))}/>
+          <input placeholder="ملاحظات" value={f.notes} onChange={e=>setF(p=>({...p,notes:e.target.value}))}/>
+          <button className="primary" onClick={add}>إضافة</button>
+        </div>
+      </div>
+      <div className="grid2">
+        {list.map(p=>{
+          const invs=kind==='customers'?(data.sales||[]).filter(s=>s.customerId===p.id):(data.purchases||[]).filter(s=>s.supplierId===p.id);
+          const total=invs.reduce((a,s)=>a+(s.total||0),0);
+          return(
+            <div key={p.id} className="card">
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+                <div>
+                  <div style={{fontWeight:500,fontSize:15,marginBottom:3}}>{p.name}</div>
+                  {p.phone&&<div style={{fontSize:13,color:'#666'}}>📞 {p.phone}</div>}
+                  {p.address&&<div style={{fontSize:13,color:'#666'}}>📍 {p.address}</div>}
+                  {p.notes&&<div style={{fontSize:12,color:'#999',marginTop:4}}>{p.notes}</div>}
+                  {p.createdByName&&<div style={{fontSize:11,color:'#bbb',marginTop:4}}>أضافه: {p.createdByName}</div>}
+                </div>
+                <button className="danger" onClick={()=>del(p.id)}>حذف</button>
+              </div>
+              <hr className="sep"/>
+              <div style={{display:'flex',justifyContent:'space-between',fontSize:13}}>
+                <span style={{color:'#666'}}>إجمالي المعاملات</span>
+                <span style={{fontWeight:500}}>{fmt(total+(p.balance||0))} ج.م</span>
+              </div>
+            </div>
+          );
+        })}
+        {!list.length&&<div style={{color:'#aaa',padding:16}}>لا يوجد {kind==='customers'?'عملاء':'موردون'} بعد</div>}
+      </div>
+    </div>
+  );
+}
+
+/* ══ INVOICES ══ */
+function Invoices({data,update,kind,user}){
+  const isSale=kind==='sales';
+  const [f,setF]=useState({party:'',date:today(),items:[],note:'',paid:''});
+  const [ni,setNi]=useState({itemId:'',qty:'',price:''});
+  const [print,setPrint]=useState(null);
+  const parties=isSale?(data.customers||[]):(data.suppliers||[]);
+  const list=data[kind]||[];
+  const addItem=()=>{
+    const inv=(data.inventory||[]).find(i=>i.id===ni.itemId);
+    if(!inv||!ni.qty)return;
+    const price=ni.price||(isSale?inv.sellPrice:inv.buyPrice);
+    setF(p=>({...p,items:[...p.items,{itemId:inv.id,name:inv.name,qty:+ni.qty,price:+price,buyPrice:inv.buyPrice,unit:inv.unit}]}));
+    setNi({itemId:'',qty:'',price:''});
+  };
+  const save=()=>{
+    if(!f.items.length)return;
+    const total=f.items.reduce((a,i)=>a+i.qty*i.price,0);
+    const profit=isSale?f.items.reduce((a,i)=>a+i.qty*(i.price-i.buyPrice),0):0;
+    const party=parties.find(p=>p.id===f.party);
+    const inv={id:uid(),date:f.date,
+      customerId:isSale?f.party:undefined,customerName:isSale?party?.name:undefined,
+      supplierId:!isSale?f.party:undefined,supplierName:!isSale?party?.name:undefined,
+      items:f.items,total,profit,note:f.note,paid:+f.paid||total,
+      createdBy:user.id,createdByName:user.name,createdAt:now()};
+    update(d=>{
+      let inventory=d.inventory;
+      if(isSale) inventory=d.inventory.map(i=>{const fi=f.items.find(x=>x.itemId===i.id);return fi?{...i,qty:i.qty-fi.qty}:i;});
+      else inventory=d.inventory.map(i=>{const fi=f.items.find(x=>x.itemId===i.id);return fi?{...i,qty:i.qty+fi.qty}:i;});
+      return{...d,[kind]:[...(d[kind]||[]),inv],inventory};
+    },(isSale?'إضافة فاتورة بيع':'إضافة فاتورة شراء')+(party?' للـ'+party.name:''));
+    setF({party:'',date:today(),items:[],note:'',paid:''});
+  };
+  const del=id=>update(d=>({...d,[kind]:d[kind].filter(i=>i.id!==id)}),(isSale?'حذف فاتورة بيع':'حذف فاتورة شراء'));
+  const total=f.items.reduce((a,i)=>a+i.qty*i.price,0);
+  const profit=isSale?f.items.reduce((a,i)=>a+i.qty*(i.price-i.buyPrice),0):0;
+  if(print) return <PrintInv inv={print} isSale={isSale} onClose={()=>setPrint(null)}/>;
+  return(
+    <div>
+      <h2>{isSale?'🛒 المبيعات':'📋 المشتريات'}</h2>
+      <div className="card">
+        <div style={{fontWeight:500,marginBottom:10}}>فاتورة {isSale?'بيع':'شراء'} جديدة</div>
+        <div className="row-form" style={{marginBottom:10}}>
+          <select value={f.party} onChange={e=>setF(p=>({...p,party:e.target.value}))}>
+            <option value="">{isSale?'اختر عميل':'اختر مورد'} (اختياري)</option>
+            {parties.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+          <input type="date" value={f.date} onChange={e=>setF(p=>({...p,date:e.target.value}))}/>
+          <input placeholder="ملاحظة" value={f.note} onChange={e=>setF(p=>({...p,note:e.target.value}))}/>
+          <input placeholder="المبلغ المدفوع" type="number" value={f.paid} onChange={e=>setF(p=>({...p,paid:e.target.value}))}/>
+        </div>
+        <div className="row-form">
+          <select value={ni.itemId} onChange={e=>setNi(p=>({...p,itemId:e.target.value}))}>
+            <option value="">اختر صنف</option>
+            {(data.inventory||[]).map(i=><option key={i.id} value={i.id}>{i.name} (متاح: {i.qty})</option>)}
+          </select>
+          <input placeholder="الكمية" type="number" value={ni.qty} onChange={e=>setNi(p=>({...p,qty:e.target.value}))}/>
+          <input placeholder="السعر (اختياري)" type="number" value={ni.price} onChange={e=>setNi(p=>({...p,price:e.target.value}))}/>
+          <button onClick={addItem}>➕ إضافة صنف</button>
+        </div>
+        {f.items.length>0&&(
+          <div style={{marginTop:10}}>
+            <table>
+              <thead><tr><th>الصنف</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th>{isSale&&<th>الربح</th>}<th></th></tr></thead>
+              <tbody>
+                {f.items.map((it,i)=>(
+                  <tr key={i}>
+                    <td>{it.name}</td><td>{it.qty} {it.unit}</td>
+                    <td>{fmt(it.price)}</td><td style={{fontWeight:500}}>{fmt(it.qty*it.price)}</td>
+                    {isSale&&<td className="green">{fmt(it.qty*(it.price-it.buyPrice))}</td>}
+                    <td><button className="danger" onClick={()=>setF(p=>({...p,items:p.items.filter((_,j)=>j!==i)}))}>✕</button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div style={{display:'flex',justifyContent:'space-between',padding:'10px 0',fontWeight:500,fontSize:15}}>
+              <span>إجمالي: {fmt(total)} ج.م</span>
+              {isSale&&<span className="green">ربح: {fmt(profit)} ج.م</span>}
+            </div>
+            <button className="primary" onClick={save}>💾 حفظ الفاتورة</button>
+          </div>
+        )}
+      </div>
+      <div style={{overflowX:'auto'}}>
+        <table>
+          <thead><tr>
+            <th>التاريخ</th><th>{isSale?'العميل':'المورد'}</th>
+            <th>الإجمالي</th>{isSale&&<th>الربح</th>}
+            <th>الحالة</th><th>بواسطة</th><th></th>
+          </tr></thead>
+          <tbody>
+            {[...list].reverse().map(s=>(
+              <tr key={s.id}>
+                <td>{s.date}</td>
+                <td>{s.customerName||s.supplierName||'نقدي'}</td>
+                <td style={{fontWeight:500}}>{fmt(s.total)} ج.م</td>
+                {isSale&&<td className="green">{fmt(s.profit)} ج.م</td>}
+                <td><span className={'badge '+(s.paid>=s.total?'badge-success':'badge-warning')}>{s.paid>=s.total?'مدفوعة':'جزئي'}</span></td>
+                <td style={{fontSize:11,color:'#888'}}>{s.createdByName||'—'}</td>
+                <td style={{display:'flex',gap:4}}>
+                  <button onClick={()=>setPrint(s)}>🖨️</button>
+                  <button className="danger" onClick={()=>del(s.id)}>حذف</button>
+                </td>
+              </tr>
+            ))}
+            {!list.length&&<tr><td colSpan={8} style={{textAlign:'center',color:'#aaa',padding:20}}>لا توجد فواتير</td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+/* ══ PRINT ══ */
+function PrintInv({inv,isSale,onClose}){
+  return(
+    <div>
+      <div className="no-print">
+        <div className="card" style={{maxWidth:600,margin:'0 auto'}}>
+          <div style={{textAlign:'center',marginBottom:16}}>
+            <div style={{fontSize:20,fontWeight:700}}>نظام شرف المحاسبي</div>
+            <div style={{color:'#666'}}>فاتورة {isSale?'بيع':'شراء'} — {inv.date}</div>
+          </div>
+          <div style={{marginBottom:12,fontSize:14,display:'flex',justifyContent:'space-between'}}>
+            <span>{isSale?'العميل':'المورد'}: <strong>{inv.customerName||inv.supplierName||'نقدي'}</strong></span>
+            <span style={{fontSize:12,color:'#888'}}>بواسطة: {inv.createdByName||'—'}</span>
+          </div>
+          <table style={{marginBottom:12}}>
+            <thead><tr><th>الصنف</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr></thead>
+            <tbody>{inv.items?.map((it,i)=><tr key={i}><td>{it.name}</td><td>{it.qty} {it.unit}</td><td>{fmt(it.price)}</td><td>{fmt(it.qty*it.price)}</td></tr>)}</tbody>
+          </table>
+          <div style={{textAlign:'left',fontWeight:700,fontSize:16,borderTop:'1px solid #eee',paddingTop:10}}>الإجمالي: {fmt(inv.total)} ج.م</div>
+          {inv.note&&<div style={{marginTop:8,color:'#666',fontSize:13}}>ملاحظة: {inv.note}</div>}
+          <div style={{display:'flex',gap:8,marginTop:16}}>
+            <button className="primary" onClick={()=>window.print()}>🖨️ طباعة</button>
+            <button onClick={onClose}>رجوع</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══ QUOTES ══ */
+function Quotes({data,update,user}){
+  const [f,setF]=useState({customer:'',date:today(),validDays:7,items:[],note:''});
+  const [ni,setNi]=useState({itemId:'',qty:'',price:''});
+  const addItem=()=>{
+    const inv=(data.inventory||[]).find(i=>i.id===ni.itemId);
+    if(!inv||!ni.qty)return;
+    setF(p=>({...p,items:[...p.items,{name:inv.name,qty:+ni.qty,price:+(ni.price||inv.sellPrice),unit:inv.unit}]}));
+    setNi({itemId:'',qty:'',price:''});
+  };
+  const save=()=>{
+    if(!f.items.length)return;
+    const total=f.items.reduce((a,i)=>a+i.qty*i.price,0);
+    update(d=>({...d,quotes:[...(d.quotes||[]),{id:uid(),...f,total,createdBy:user.id,createdByName:user.name}]}),'إضافة عرض سعر: '+(f.customer||'عميل'));
+    setF({customer:'',date:today(),validDays:7,items:[],note:''});
+  };
+  const del=id=>update(d=>({...d,quotes:(d.quotes||[]).filter(q=>q.id!==id)}),'حذف عرض سعر');
+  return(
+    <div>
+      <h2>🏷️ عروض الأسعار</h2>
+      <div className="card">
+        <div className="row-form" style={{marginBottom:10}}>
+          <input placeholder="اسم العميل" value={f.customer} onChange={e=>setF(p=>({...p,customer:e.target.value}))}/>
+          <input type="date" value={f.date} onChange={e=>setF(p=>({...p,date:e.target.value}))}/>
+          <input placeholder="صالح لـ (أيام)" type="number" value={f.validDays} onChange={e=>setF(p=>({...p,validDays:e.target.value}))}/>
+          <input placeholder="ملاحظة" value={f.note} onChange={e=>setF(p=>({...p,note:e.target.value}))}/>
+        </div>
+        <div className="row-form">
+          <select value={ni.itemId} onChange={e=>setNi(p=>({...p,itemId:e.target.value}))}>
+            <option value="">اختر صنف</option>
+            {(data.inventory||[]).map(i=><option key={i.id} value={i.id}>{i.name}</option>)}
+          </select>
+          <input placeholder="كمية" type="number" value={ni.qty} onChange={e=>setNi(p=>({...p,qty:e.target.value}))}/>
+          <input placeholder="سعر" type="number" value={ni.price} onChange={e=>setNi(p=>({...p,price:e.target.value}))}/>
+          <button onClick={addItem}>➕</button>
+        </div>
+        {f.items.map((it,i)=><div key={i} style={{fontSize:13,padding:'5px 8px',background:'#f5f5f0',borderRadius:6,marginTop:4}}>{it.name} × {it.qty} = {fmt(it.qty*it.price)} ج.م</div>)}
+        {f.items.length>0&&<button className="primary" style={{marginTop:10}} onClick={save}>💾 حفظ</button>}
+      </div>
+      {(data.quotes||[]).map(q=>(
+        <div key={q.id} className="card">
+          <div style={{display:'flex',justifyContent:'space-between'}}>
+            <div>
+              <div style={{fontWeight:500}}>{q.customer||'عميل'} — {q.date}</div>
+              <div style={{fontSize:12,color:'#888'}}>صالح لـ {q.validDays} أيام | بواسطة: {q.createdByName||'—'}</div>
+              {q.items.map((it,i)=><div key={i} style={{fontSize:13,marginTop:3}}>{it.name} × {it.qty} بسعر {fmt(it.price)}</div>)}
+              <div style={{fontWeight:500,marginTop:8}}>الإجمالي: {fmt(q.total)} ج.م</div>
+            </div>
+            <button className="danger" onClick={()=>del(q.id)}>حذف</button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ══ EXPENSES ══ */
+function Expenses({data,update,user}){
+  const [f,setF]=useState({category:'إيجار',amount:'',note:'',date:today()});
+  const cats=['إيجار','كهرباء','مياه','رواتب','صيانة','نقل','تسويق','مواد خام','أخرى'];
+  const add=()=>{
+    if(!f.amount)return;
+    update(d=>({...d,expenses:[...(d.expenses||[]),{id:uid(),...f,amount:+f.amount,createdBy:user.id,createdByName:user.name}]}),'إضافة مصروف: '+f.category+' '+f.amount);
+    setF({category:'إيجار',amount:'',note:'',date:today()});
+  };
+  const del=id=>update(d=>({...d,expenses:(d.expenses||[]).filter(e=>e.id!==id)}),'حذف مصروف');
+  const bycat=(data.expenses||[]).reduce((a,e)=>{a[e.category]=(a[e.category]||0)+e.amount;return a;},{});
+  return(
+    <div>
+      <h2>💸 المصاريف</h2>
+      <div className="card">
+        <div className="row-form">
+          <select value={f.category} onChange={e=>setF(p=>({...p,category:e.target.value}))}>
+            {cats.map(c=><option key={c}>{c}</option>)}
+          </select>
+          <input placeholder="المبلغ *" type="number" value={f.amount} onChange={e=>setF(p=>({...p,amount:e.target.value}))}/>
+          <input placeholder="ملاحظة" value={f.note} onChange={e=>setF(p=>({...p,note:e.target.value}))}/>
+          <input type="date" value={f.date} onChange={e=>setF(p=>({...p,date:e.target.value}))}/>
+          <button className="primary" onClick={add}>إضافة</button>
+        </div>
+      </div>
+      <div className="grid3" style={{marginBottom:14}}>
+        {Object.entries(bycat).map(([c,a])=><div key={c} className="stat"><div className="stat-label">{c}</div><div className="stat-val red">{fmt(a)}</div></div>)}
+      </div>
+      <table>
+        <thead><tr><th>التاريخ</th><th>الفئة</th><th>المبلغ</th><th>ملاحظة</th><th>بواسطة</th><th></th></tr></thead>
+        <tbody>
+          {[...(data.expenses||[])].reverse().map(e=>(
+            <tr key={e.id}>
+              <td>{e.date}</td><td>{e.category}</td>
+              <td className="red" style={{fontWeight:500}}>{fmt(e.amount)} ج.م</td>
+              <td>{e.note}</td>
+              <td style={{fontSize:11,color:'#888'}}>{e.createdByName||'—'}</td>
+              <td><button className="danger" onClick={()=>del(e.id)}>حذف</button></td>
+            </tr>
+          ))}
+          {!(data.expenses||[]).length&&<tr><td colSpan={6} style={{textAlign:'center',color:'#aaa',padding:20}}>لا توجد مصاريف</td></tr>}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/* ══ CASHFLOW ══ */
+function Cashflow({data,update,user}){
+  const [f,setF]=useState({type:'in',amount:'',desc:'',date:today()});
+  const add=()=>{
+    if(!f.amount)return;
+    update(d=>({...d,cashflow:[...(d.cashflow||[]),{id:uid(),...f,amount:+f.amount,createdBy:user.id,createdByName:user.name}]}),'إضافة '+(f.type==='in'?'وارد':'صادر')+': '+f.amount);
+    setF({type:'in',amount:'',desc:'',date:today()});
+  };
+  const del=id=>update(d=>({...d,cashflow:(d.cashflow||[]).filter(c=>c.id!==id)}),'حذف حركة نقدية');
+  const tin=(data.cashflow||[]).filter(c=>c.type==='in').reduce((a,c)=>a+c.amount,0);
+  const tout=(data.cashflow||[]).filter(c=>c.type==='out').reduce((a,c)=>a+c.amount,0);
+  return(
+    <div>
+      <h2>💰 الصادر والوارد</h2>
+      <div className="grid3" style={{marginBottom:14}}>
+        <div className="stat"><div className="stat-label">الوارد</div><div className="stat-val green">{fmt(tin)}</div></div>
+        <div className="stat"><div className="stat-label">الصادر</div><div className="stat-val red">{fmt(tout)}</div></div>
+        <div className="stat"><div className="stat-label">الرصيد</div><div className={'stat-val '+(tin-tout>=0?'green':'red')}>{fmt(tin-tout)}</div></div>
+      </div>
+      <div className="card">
+        <div className="row-form">
+          <select value={f.type} onChange={e=>setF(p=>({...p,type:e.target.value}))}>
+            <option value="in">💚 وارد</option><option value="out">🔴 صادر</option>
+          </select>
+          <input placeholder="المبلغ *" type="number" value={f.amount} onChange={e=>setF(p=>({...p,amount:e.target.value}))}/>
+          <input placeholder="البيان" value={f.desc} onChange={e=>setF(p=>({...p,desc:e.target.value}))}/>
+          <input type="date" value={f.date} onChange={e=>setF(p=>({...p,date:e.target.value}))}/>
+          <button className="primary" onClick={add}>إضافة</button>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>التاريخ</th><th>النوع</th><th>المبلغ</th><th>البيان</th><th>بواسطة</th><th></th></tr></thead>
+        <tbody>
+          {[...(data.cashflow||[])].reverse().map(c=>(
+            <tr key={c.id}>
+              <td>{c.date}</td>
+              <td className={c.type==='in'?'green':'red'}>{c.type==='in'?'💚 وارد':'🔴 صادر'}</td>
+              <td style={{fontWeight:500}}>{fmt(c.amount)} ج.م</td>
+              <td>{c.desc}</td>
+              <td style={{fontSize:11,color:'#888'}}>{c.createdByName||'—'}</td>
+              <td><button className="danger" onClick={()=>del(c.id)}>حذف</button></td>
+            </tr>
+          ))}
+          {!(data.cashflow||[]).length&&<tr><td colSpan={6} style={{textAlign:'center',color:'#aaa',padding:20}}>لا توجد حركات</td></tr>}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/* ══ PARTNERSHIP ══ */
+function Partnership({data,update,user}){
+  const [f,setF]=useState({name:'',share:''});
+  const partners=data.partners||[];
+  const add=()=>{
+    if(!f.name||!f.share)return;
+    update(d=>({...d,partners:[...(d.partners||[]),{id:uid(),name:f.name,share:+f.share,createdBy:user.id}]}),'إضافة شريك: '+f.name);
+    setF({name:'',share:''});
+  };
+  const del=id=>update(d=>({...d,partners:(d.partners||[]).filter(p=>p.id!==id)}),'حذف شريك');
+  const totalShare=partners.reduce((a,p)=>a+p.share,0);
+  const gross=(data.sales||[]).reduce((a,s)=>a+(s.profit||0),0);
+  const exp=(data.expenses||[]).reduce((a,e)=>a+e.amount,0);
+  const net=gross-exp;
+  return(
+    <div>
+      <h2>🤝 الشراكة</h2>
+      <div className="card">
+        <div className="row-form">
+          <input placeholder="اسم الشريك *" value={f.name} onChange={e=>setF(p=>({...p,name:e.target.value}))}/>
+          <input placeholder="نسبة الحصة %" type="number" value={f.share} onChange={e=>setF(p=>({...p,share:e.target.value}))}/>
+          <button className="primary" onClick={add}>إضافة</button>
+        </div>
+        {totalShare>0&&totalShare!==100&&<div style={{marginTop:8,color:'#e65100',fontSize:13}}>⚠️ إجمالي الحصص: {totalShare}% — يجب 100%</div>}
+      </div>
+      <div className="stat" style={{marginBottom:14,background:net>=0?'#e8f5e9':'#ffebee'}}>
+        <div className="stat-label">صافي الربح القابل للتوزيع</div>
+        <div className={'stat-val '+(net>=0?'green':'red')}>{fmt(net)} ج.م</div>
+      </div>
+      <div className="grid2">
+        {partners.map(p=>(
+          <div key={p.id} className="card">
+            <div style={{display:'flex',justifyContent:'space-between'}}>
+              <div>
+                <div style={{fontWeight:500,fontSize:16}}>{p.name}</div>
+                <div style={{fontSize:13,color:'#666'}}>الحصة: {p.share}%</div>
+                <div style={{fontWeight:500,marginTop:8,color:net>=0?'#2e7d32':'#c62828'}}>نصيبه: {fmt(net*p.share/100)} ج.م</div>
+              </div>
+              <button className="danger" onClick={()=>del(p.id)}>حذف</button>
+            </div>
+          </div>
+        ))}
+        {!partners.length&&<div style={{color:'#aaa'}}>لا يوجد شركاء</div>}
+      </div>
+    </div>
+  );
+}
+
+/* ══ STATEMENT ══ */
+function Statement({data}){
+  const [type,setType]=useState('customer');
+  const [pid,setPid]=useState('');
+  const [search,setSearch]=useState('');
+  const [showList,setShowList]=useState(false);
+  const searchRef=useRef(null);
+
+  const parties=type==='customer'?(data.customers||[]):(data.suppliers||[]);
+  const filtered=search.trim()===''?parties:parties.filter(p=>p.name.toLowerCase().includes(search.toLowerCase())||( p.phone&&p.phone.includes(search)));
+  const party=parties.find(p=>p.id===pid);
+  const invs=type==='customer'?(data.sales||[]).filter(s=>s.customerId===pid):(data.purchases||[]).filter(s=>s.supplierId===pid);
+  const total=invs.reduce((a,s)=>a+(s.total||0),0);
+  let running=party?.balance||0;
+
+  const selectParty=(p)=>{
+    setPid(p.id);
+    setSearch(p.name);
+    setShowList(false);
+  };
+
+  const changeType=(t)=>{
+    setType(t);setPid('');setSearch('');setShowList(false);
+  };
+
+  return(
+    <div>
+      <h2>📊 كشف الحساب</h2>
+      <div className="row-form" style={{marginBottom:16,alignItems:'flex-start'}}>
+        {/* نوع */}
+        <select value={type} onChange={e=>changeType(e.target.value)} style={{flex:'0 0 120px'}}>
+          <option value="customer">عميل</option>
+          <option value="supplier">مورد</option>
+        </select>
+        {/* بحث */}
+        <div style={{position:'relative',flex:2,minWidth:200}}>
+          <input
+            ref={searchRef}
+            placeholder={'🔍 ابحث باسم '+(type==='customer'?'العميل':'المورد')+' أو رقم الهاتف...'}
+            value={search}
+            onChange={e=>{setSearch(e.target.value);setPid('');setShowList(true);}}
+            onFocus={()=>setShowList(true)}
+            style={{paddingLeft:32}}
+          />
+          {search&&(
+            <button onClick={()=>{setSearch('');setPid('');setShowList(false);searchRef.current?.focus();}}
+              style={{position:'absolute',left:8,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',fontSize:16,cursor:'pointer',padding:0,color:'#aaa'}}>✕</button>
+          )}
+          {showList&&filtered.length>0&&(
+            <div style={{position:'absolute',top:'100%',right:0,left:0,background:'#fff',border:'0.5px solid #e0e0e0',borderRadius:10,boxShadow:'0 4px 16px rgba(0,0,0,.1)',zIndex:50,maxHeight:240,overflowY:'auto',marginTop:4}}>
+              {filtered.map(p=>{
+                const invCount=type==='customer'?(data.sales||[]).filter(s=>s.customerId===p.id).length:(data.purchases||[]).filter(s=>s.supplierId===p.id).length;
+                const invTotal=type==='customer'?(data.sales||[]).filter(s=>s.customerId===p.id).reduce((a,s)=>a+(s.total||0),0):(data.purchases||[]).filter(s=>s.supplierId===p.id).reduce((a,s)=>a+(s.total||0),0);
+                return(
+                  <div key={p.id} onClick={()=>selectParty(p)}
+                    style={{padding:'10px 14px',cursor:'pointer',borderBottom:'0.5px solid #f5f5f0',display:'flex',justifyContent:'space-between',alignItems:'center'}}
+                    onMouseEnter={e=>e.currentTarget.style.background='#f5f5f0'}
+                    onMouseLeave={e=>e.currentTarget.style.background='#fff'}>
+                    <div>
+                      <div style={{fontWeight:500,fontSize:14}}>{p.name}</div>
+                      {p.phone&&<div style={{fontSize:12,color:'#888'}}>📞 {p.phone}</div>}
+                    </div>
+                    <div style={{textAlign:'left',fontSize:12}}>
+                      <div style={{color:'#888'}}>{invCount} فاتورة</div>
+                      <div style={{fontWeight:500,color:'#1565c0'}}>{fmt(invTotal+(p.balance||0))} ج.م</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {showList&&search.trim()!==''&&filtered.length===0&&(
+            <div style={{position:'absolute',top:'100%',right:0,left:0,background:'#fff',border:'0.5px solid #e0e0e0',borderRadius:10,padding:14,zIndex:50,marginTop:4,textAlign:'center',color:'#aaa',fontSize:13}}>
+              لم يتم إيجاد نتائج
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* كل الأطراف لو مفيش بحث */}
+      {!pid&&search.trim()===''&&(
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:10,marginBottom:16}}>
+          {parties.map(p=>{
+            const invs2=type==='customer'?(data.sales||[]).filter(s=>s.customerId===p.id):(data.purchases||[]).filter(s=>s.supplierId===p.id);
+            const t2=invs2.reduce((a,s)=>a+(s.total||0),0);
+            const paid2=invs2.reduce((a,s)=>a+(s.paid||0),0);
+            const remain=t2+(p.balance||0)-paid2;
+            return(
+              <div key={p.id} onClick={()=>selectParty(p)} style={{background:'#fff',border:'0.5px solid #e0e0e0',borderRadius:10,padding:12,cursor:'pointer',transition:'box-shadow .15s'}}
+                onMouseEnter={e=>e.currentTarget.style.boxShadow='0 2px 12px rgba(0,0,0,.08)'}
+                onMouseLeave={e=>e.currentTarget.style.boxShadow='none'}>
+                <div style={{fontWeight:500,marginBottom:3}}>{p.name}</div>
+                {p.phone&&<div style={{fontSize:12,color:'#888',marginBottom:6}}>📞 {p.phone}</div>}
+                <div style={{display:'flex',justifyContent:'space-between',fontSize:12}}>
+                  <span style={{color:'#888'}}>{invs2.length} فاتورة</span>
+                  <span style={{color:remain>0?'#c62828':remain<0?'#2e7d32':'#888',fontWeight:500}}>{remain>0?'متبقي: '+fmt(remain):remain<0?'زيادة: '+fmt(-remain):'سوا'} ج.م</span>
+                </div>
+              </div>
+            );
+          })}
+          {parties.length===0&&<div style={{color:'#aaa',padding:16}}>لا يوجد {type==='customer'?'عملاء':'موردون'}</div>}
+        </div>
+      )}
+
+      {/* كشف الحساب */}
+      {party&&(
+        <div>
+          <div className="card" style={{marginBottom:12,display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8}}>
+            <div>
+              <div style={{fontWeight:500,fontSize:17}}>{party.name}</div>
+              {party.phone&&<div style={{fontSize:13,color:'#666'}}>📞 {party.phone}</div>}
+              {party.address&&<div style={{fontSize:13,color:'#666'}}>📍 {party.address}</div>}
+            </div>
+            <div style={{display:'flex',gap:16,fontSize:13}}>
+              <div><div style={{color:'#888'}}>إجمالي</div><div style={{fontWeight:500,color:'#1565c0'}}>{fmt(total+(party.balance||0))} ج.م</div></div>
+              <div><div style={{color:'#888'}}>مدفوع</div><div style={{fontWeight:500,color:'#2e7d32'}}>{fmt(invs.reduce((a,s)=>a+s.paid,0))} ج.م</div></div>
+              <div><div style={{color:'#888'}}>متبقي</div><div style={{fontWeight:500,color:'#c62828'}}>{fmt(total+(party.balance||0)-invs.reduce((a,s)=>a+s.paid,0))} ج.م</div></div>
+            </div>
+          </div>
+          <div style={{overflowX:'auto'}}>
+            <table>
+              <thead><tr><th>التاريخ</th><th>البيان</th><th>مدين</th><th>دائن</th><th>الرصيد</th><th>بواسطة</th></tr></thead>
+              <tbody>
+                {(party.balance||0)!==0&&<tr style={{background:'#f5f5f0'}}><td>—</td><td>رصيد ابتدائي</td><td>{fmt(party.balance)}</td><td>—</td><td style={{fontWeight:500}}>{fmt(party.balance)}</td><td>—</td></tr>}
+                {invs.map(s=>{running+=s.total;return(
+                  <tr key={s.id}>
+                    <td>{s.date}</td>
+                    <td>فاتورة {s.note?'— '+s.note:''}</td>
+                    <td className="blue" style={{fontWeight:500}}>{fmt(s.total)}</td>
+                    <td className="green">{fmt(s.paid)}</td>
+                    <td style={{fontWeight:500}}>{fmt(running)}</td>
+                    <td style={{fontSize:11,color:'#888'}}>{s.createdByName||'—'}</td>
+                  </tr>
+                );})}
+                {invs.length===0&&<tr><td colSpan={6} style={{textAlign:'center',color:'#aaa',padding:16}}>لا توجد معاملات</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ══ INCOME ══ */
+function Income({data}){
+  const [period,setPeriod]=useState('month');
+  const td=today(),tm=td.slice(0,7),ty=td.slice(0,4);
+  const filt=arr=>{
+    if(period==='day') return arr.filter(s=>s.date===td);
+    if(period==='month') return arr.filter(s=>s.date?.slice(0,7)===tm);
+    return arr.filter(s=>s.date?.slice(0,4)===ty);
+  };
+  const sales=filt(data.sales||[]);
+  const exps=filt(data.expenses||[]);
+  const revenue=sales.reduce((a,s)=>a+(s.total||0),0);
+  const cogs=sales.reduce((a,s)=>a+(s.items||[]).reduce((b,i)=>b+i.qty*(i.buyPrice||0),0),0);
+  const gross=revenue-cogs;
+  const totalExp=exps.reduce((a,e)=>a+(e.amount||0),0);
+  const net=gross-totalExp;
+  const bycat=exps.reduce((a,e)=>{a[e.category]=(a[e.category]||0)+e.amount;return a;},{});
+  const Row=({l,v,bold,color,indent})=>(
+    <div style={{display:'flex',justifyContent:'space-between',padding:'8px '+(indent?'24px':'0'),borderBottom:'0.5px solid #f0f0f0',fontWeight:bold?500:400,paddingRight:indent?24:0}}>
+      <span style={{color:indent?'#666':'inherit'}}>{l}</span>
+      <span style={{color:color||'inherit'}}>{fmt(v)} ج.م</span>
+    </div>
+  );
+  return(
+    <div>
+      <h2>📈 قائمة الدخل</h2>
+      <div style={{display:'flex',gap:8,marginBottom:16}}>
+        {[['day','اليوم'],['month','الشهر'],['year','السنة']].map(([v,l])=>(
+          <button key={v} onClick={()=>setPeriod(v)} style={{background:period===v?'#4a90d9':'#fff',color:period===v?'#fff':'inherit'}}>{l}</button>
+        ))}
+      </div>
+      <div className="card">
+        <Row l="إيرادات المبيعات" v={revenue} bold/>
+        <Row l="(-) تكلفة البضاعة المباعة" v={cogs} color="#c62828"/>
+        <Row l="= مجمل الربح" v={gross} bold color={gross>=0?'#2e7d32':'#c62828'}/>
+        <div style={{padding:'8px 0 4px',fontWeight:500,color:'#666',fontSize:13}}>المصاريف:</div>
+        {Object.entries(bycat).map(([c,a])=><Row key={c} l={c} v={a} indent color="#c62828"/>)}
+        <Row l="(-) إجمالي المصاريف" v={totalExp} bold color="#c62828"/>
+        <div style={{display:'flex',justifyContent:'space-between',padding:'14px 0 0',fontSize:18,fontWeight:700,borderTop:'2px solid #333',marginTop:8}}>
+          <span>صافي الربح / الخسارة</span>
+          <span style={{color:net>=0?'#2e7d32':'#c62828'}}>{fmt(net)} ج.م</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══ BALANCE ══ */
+function Balance({data}){
+  const cashIn=(data.cashflow||[]).filter(c=>c.type==='in').reduce((a,c)=>a+c.amount,0);
+  const cashOut=(data.cashflow||[]).filter(c=>c.type==='out').reduce((a,c)=>a+c.amount,0);
+  const cash=cashIn-cashOut;
+  const invVal=(data.inventory||[]).reduce((a,i)=>a+i.qty*i.buyPrice,0);
+  const recv=(data.sales||[]).filter(s=>s.paid<s.total).reduce((a,s)=>a+(s.total-s.paid),0);
+  const pay=(data.purchases||[]).filter(s=>s.paid<s.total).reduce((a,s)=>a+(s.total-s.paid),0);
+  const totalA=cash+invVal+recv,totalL=pay,eq=totalA-totalL;
+  const Sec=({title,rows,total,color})=>(
+    <div style={{marginBottom:18}}>
+      <div style={{fontWeight:500,padding:'9px 12px',background:'#f5f5f0',borderRadius:8,marginBottom:4}}>{title}</div>
+      {rows.map(([l,v])=><div key={l} style={{display:'flex',justifyContent:'space-between',padding:'7px 12px',fontSize:14}}><span>{l}</span><span>{fmt(v)} ج.م</span></div>)}
+      <div style={{display:'flex',justifyContent:'space-between',padding:'9px 12px',fontWeight:500,borderTop:'0.5px solid #e0e0e0',color:color||'inherit'}}><span>الإجمالي</span><span>{fmt(total)} ج.م</span></div>
+    </div>
+  );
+  return(
+    <div>
+      <h2>⚖️ الميزانية العمومية</h2>
+      <div className="card">
+        <Sec title="الأصول" rows={[['النقدية',cash],['المخزون',invVal],['ذمم مدينة',recv]]} total={totalA} color="#1565c0"/>
+        <Sec title="الخصوم" rows={[['ذمم دائنة',pay]]} total={totalL} color="#c62828"/>
+        <Sec title="حقوق الملكية" rows={[['رأس المال + الأرباح',eq]]} total={eq} color="#2e7d32"/>
+        <div style={{textAlign:'center',padding:12,borderRadius:10,background:Math.abs(totalA-(totalL+eq))<0.01?'#e8f5e9':'#fff8e1',fontWeight:500,color:Math.abs(totalA-(totalL+eq))<0.01?'#2e7d32':'#e65100'}}>
+          {Math.abs(totalA-(totalL+eq))<0.01?'✅ الميزانية متوازنة':'⚠️ الميزانية غير متوازنة'}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══ OPENING BALANCE ══ */
+function Opening({data,update,user}){
+  const [year,setYear]=useState(new Date().getFullYear());
+  const [msg,setMsg]=useState('');
+  const opening=data.openingBalances||{};
+  const ob=opening[year]||{cash:0,inventory:0,receivables:0,payables:0,equity:0,notes:'',locked:false};
+  const [f,setF]=useState(ob);
+
+  useEffect(()=>{
+    const o=(data.openingBalances||{})[year]||{cash:0,inventory:0,receivables:0,payables:0,equity:0,notes:'',locked:false};
+    setF(o);
+  },[year,data.openingBalances]);
+
+  const save=()=>{
+    if(f.locked&&!window.confirm('هذا الرصيد مقفّل. هل تريد تعديله؟'))return;
+    update(d=>({...d,openingBalances:{...(d.openingBalances||{}),[year]:{...f,savedBy:user.name,savedAt:now()}}}),'حفظ رصيد افتتاحي سنة '+year);
+    setMsg('✅ تم حفظ الرصيد الافتتاحي لسنة '+year);
+    setTimeout(()=>setMsg(''),3000);
+  };
+
+  const lock=()=>{
+    if(window.confirm('هل تريد قفل الرصيد الافتتاحي؟ لن يمكن تعديله إلا بتأكيد.')){
+      update(d=>({...d,openingBalances:{...(d.openingBalances||{}),[year]:{...f,locked:true,lockedBy:user.name,lockedAt:now()}}}),'قفل رصيد افتتاحي سنة '+year);
+      setMsg('🔒 تم قفل الرصيد الافتتاحي');
+      setTimeout(()=>setMsg(''),3000);
+    }
+  };
+
+  const years=[];
+  for(let y=new Date().getFullYear()-3;y<=new Date().getFullYear()+1;y++) years.push(y);
+
+  const totalAssets=(+f.cash||0)+(+f.inventory||0)+(+f.receivables||0);
+  const totalLiab=(+f.payables||0);
+  const eq=totalAssets-totalLiab;
+
+  /* قائمة كل السنوات المحفوظة */
+  const savedYears=Object.keys(opening).sort((a,b)=>b-a);
+
+  return(
+    <div>
+      <h2>🏦 الرصيد الافتتاحي</h2>
+      {msg&&<div style={{background:'#e8f5e9',border:'0.5px solid #a5d6a7',borderRadius:10,padding:12,marginBottom:14,fontWeight:500,color:'#2e7d32'}}>{msg}</div>}
+
+      <div style={{display:'flex',gap:8,marginBottom:16,flexWrap:'wrap',alignItems:'center'}}>
+        <select value={year} onChange={e=>setYear(+e.target.value)} style={{width:'auto',minWidth:120}}>
+          {years.map(y=><option key={y} value={y}>{y}</option>)}
+        </select>
+        {ob.locked&&<span className="badge badge-danger">🔒 مقفّل</span>}
+        {ob.savedBy&&<span style={{fontSize:12,color:'#888'}}>آخر تعديل: {ob.savedBy} — {ob.savedAt}</span>}
+      </div>
+
+      <div className="card">
+        <div style={{fontWeight:500,marginBottom:14}}>الأرصدة الافتتاحية لسنة {year}</div>
+        <div className="grid2" style={{marginBottom:12}}>
+          <div>
+            <div style={{fontSize:13,color:'#666',marginBottom:5}}>💵 النقدية والبنوك</div>
+            <input type="number" value={f.cash} onChange={e=>setF(p=>({...p,cash:+e.target.value}))} placeholder="0"/>
+          </div>
+          <div>
+            <div style={{fontSize:13,color:'#666',marginBottom:5}}>📦 قيمة المخزون</div>
+            <input type="number" value={f.inventory} onChange={e=>setF(p=>({...p,inventory:+e.target.value}))} placeholder="0"/>
+          </div>
+          <div>
+            <div style={{fontSize:13,color:'#666',marginBottom:5}}>👥 ذمم مدينة (عملاء)</div>
+            <input type="number" value={f.receivables} onChange={e=>setF(p=>({...p,receivables:+e.target.value}))} placeholder="0"/>
+          </div>
+          <div>
+            <div style={{fontSize:13,color:'#666',marginBottom:5}}>🚚 ذمم دائنة (موردون)</div>
+            <input type="number" value={f.payables} onChange={e=>setF(p=>({...p,payables:+e.target.value}))} placeholder="0"/>
+          </div>
+          <div>
+            <div style={{fontSize:13,color:'#666',marginBottom:5}}>🏛️ حقوق الملكية / رأس المال</div>
+            <input type="number" value={f.equity} onChange={e=>setF(p=>({...p,equity:+e.target.value}))} placeholder="0"/>
+          </div>
+          <div>
+            <div style={{fontSize:13,color:'#666',marginBottom:5}}>📝 ملاحظات</div>
+            <input value={f.notes||''} onChange={e=>setF(p=>({...p,notes:e.target.value}))} placeholder="ملاحظات اختيارية"/>
+          </div>
+        </div>
+
+        {/* ملخص */}
+        <div style={{background:'#f5f5f0',borderRadius:10,padding:12,marginBottom:14}}>
+          <div style={{fontWeight:500,marginBottom:8}}>ملخص الميزانية الافتتاحية</div>
+          <div style={{display:'flex',gap:20,flexWrap:'wrap',fontSize:14}}>
+            <span>إجمالي الأصول: <strong className="blue">{fmt(totalAssets)} ج.م</strong></span>
+            <span>إجمالي الخصوم: <strong className="red">{fmt(totalLiab)} ج.م</strong></span>
+            <span>حقوق الملكية المحسوبة: <strong className="green">{fmt(eq)} ج.م</strong></span>
+          </div>
+          {Math.abs(eq-(+f.equity||0))>0.01&&f.equity&&
+            <div style={{marginTop:6,fontSize:12,color:'#e65100'}}>⚠️ فرق في حقوق الملكية: {fmt(eq-(+f.equity||0))} ج.م</div>
+          }
+        </div>
+
+        <div style={{display:'flex',gap:8}}>
+          <button className="primary" onClick={save}>💾 حفظ الرصيد الافتتاحي</button>
+          {!ob.locked&&ob.savedAt&&<button onClick={lock} style={{background:'#fff8e1',border:'0.5px solid #f9a825',color:'#e65100'}}>🔒 قفل</button>}
+        </div>
+      </div>
+
+      {/* سجل الأرصدة */}
+      {savedYears.length>0&&(
+        <div className="card">
+          <div style={{fontWeight:500,marginBottom:10}}>📋 سجل الأرصدة الافتتاحية</div>
+          <table>
+            <thead><tr><th>السنة</th><th>النقدية</th><th>المخزون</th><th>الذمم المدينة</th><th>الذمم الدائنة</th><th>الحالة</th><th>بواسطة</th></tr></thead>
+            <tbody>
+              {savedYears.map(y=>{
+                const o=opening[y];
+                return(
+                  <tr key={y} style={{cursor:'pointer'}} onClick={()=>setYear(+y)}>
+                    <td style={{fontWeight:500}}>{y}</td>
+                    <td>{fmt(o.cash)}</td>
+                    <td>{fmt(o.inventory)}</td>
+                    <td className="blue">{fmt(o.receivables)}</td>
+                    <td className="red">{fmt(o.payables)}</td>
+                    <td><span className={'badge '+(o.locked?'badge-danger':'badge-success')}>{o.locked?'🔒 مقفّل':'✏️ مفتوح'}</span></td>
+                    <td style={{fontSize:11,color:'#888'}}>{o.savedBy||'—'}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ══ YEAR CLOSING ══ */
+function Closing({data,update,user}){
+  const [year,setYear]=useState(new Date().getFullYear());
+  const [step,setStep]=useState(0);
+  const [msg,setMsg]=useState('');
+  const closings=data.yearClosings||{};
+  const alreadyClosed=!!closings[year];
+
+  const ty=String(year);
+  const sales=(data.sales||[]).filter(s=>s.date?.startsWith(ty));
+  const purchases=(data.purchases||[]).filter(s=>s.date?.startsWith(ty));
+  const expenses=(data.expenses||[]).filter(e=>e.date?.startsWith(ty));
+  const revenue=sales.reduce((a,s)=>a+(s.total||0),0);
+  const cogs=sales.reduce((a,s)=>a+(s.items||[]).reduce((b,i)=>b+i.qty*(i.buyPrice||0),0),0);
+  const gross=revenue-cogs;
+  const totalExp=expenses.reduce((a,e)=>a+(e.amount||0),0);
+  const netProfit=gross-totalExp;
+  const cashIn=(data.cashflow||[]).filter(c=>c.type==='in'&&c.date?.startsWith(ty)).reduce((a,c)=>a+c.amount,0);
+  const cashOut=(data.cashflow||[]).filter(c=>c.type==='out'&&c.date?.startsWith(ty)).reduce((a,c)=>a+c.amount,0);
+  const invVal=(data.inventory||[]).reduce((a,i)=>a+i.qty*i.buyPrice,0);
+  const openOB=(data.openingBalances||{})[year]||{cash:0,inventory:0,receivables:0,payables:0,equity:0};
+  const closingCash=(+openOB.cash||0)+(cashIn-cashOut);
+  const recv=sales.filter(s=>s.paid<s.total).reduce((a,s)=>a+(s.total-s.paid),0);
+  const pay=purchases.filter(s=>s.paid<s.total).reduce((a,s)=>a+(s.total-s.paid),0);
+
+  const doClose=()=>{
+    if(!window.confirm(`هل تريد إقفال سنة ${year} نهائياً؟ سيتم ترحيل الأرصدة لسنة ${year+1}.`))return;
+    const nextOB={
+      cash:closingCash,
+      inventory:invVal,
+      receivables:recv+(+openOB.receivables||0),
+      payables:pay+(+openOB.payables||0),
+      equity:(+openOB.equity||0)+netProfit,
+      notes:`مرحّل من إقفال سنة ${year}`,
+      locked:false
+    };
+    const closing={
+      year,closedBy:user.name,closedAt:now(),
+      revenue,cogs,gross,totalExp,netProfit,
+      cashIn,cashOut,closingCash,invVal,recv,pay,
+      nextOpeningBalance:nextOB
+    };
+    update(d=>({
+      ...d,
+      yearClosings:{...(d.yearClosings||{}),[year]:closing},
+      openingBalances:{...(d.openingBalances||{}),[year+1]:nextOB}
+    }),'إقفال سنة '+year+' وترحيل لـ '+(year+1));
+    setMsg(`✅ تم إقفال سنة ${year} وترحيل الأرصدة لسنة ${year+1} بنجاح!`);
+    setStep(3);
+  };
+
+  const years=[];
+  for(let y=new Date().getFullYear()-3;y<=new Date().getFullYear();y++) years.push(y);
+
+  const Row=({l,v,bold,color})=>(
+    <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'0.5px solid #f0f0f0',fontWeight:bold?600:400}}>
+      <span>{l}</span><span style={{color:color||'inherit'}}>{fmt(v)} ج.م</span>
+    </div>
+  );
+
+  return(
+    <div>
+      <h2>📅 إقفال السنة والترحيل</h2>
+      {msg&&<div style={{background:'#e8f5e9',border:'0.5px solid #a5d6a7',borderRadius:10,padding:12,marginBottom:14,fontWeight:500,color:'#2e7d32'}}>{msg}</div>}
+
+      <div style={{display:'flex',gap:8,marginBottom:16,alignItems:'center'}}>
+        <select value={year} onChange={e=>{setYear(+e.target.value);setStep(0);}} style={{width:'auto',minWidth:120}}>
+          {years.map(y=><option key={y} value={y}>{y}</option>)}
+        </select>
+        {alreadyClosed&&<span className="badge badge-danger">✅ مقفّلة</span>}
+      </div>
+
+      {alreadyClosed?(
+        <div>
+          <div style={{background:'#e8f5e9',border:'0.5px solid #a5d6a7',borderRadius:12,padding:16,marginBottom:14}}>
+            <div style={{fontWeight:500,color:'#2e7d32',marginBottom:4}}>✅ تم إقفال سنة {year}</div>
+            <div style={{fontSize:13,color:'#555'}}>بواسطة: {closings[year].closedBy} — {closings[year].closedAt}</div>
+          </div>
+          <div className="card">
+            <div style={{fontWeight:500,marginBottom:10}}>📊 ملخص إقفال سنة {year}</div>
+            <Row l="إيرادات المبيعات" v={closings[year].revenue} bold/>
+            <Row l="تكلفة البضاعة المباعة" v={closings[year].cogs} color="#c62828"/>
+            <Row l="مجمل الربح" v={closings[year].gross} bold color={closings[year].gross>=0?'#2e7d32':'#c62828'}/>
+            <Row l="إجمالي المصاريف" v={closings[year].totalExp} color="#c62828"/>
+            <Row l="صافي الربح / الخسارة" v={closings[year].netProfit} bold color={closings[year].netProfit>=0?'#2e7d32':'#c62828'}/>
+            <div style={{marginTop:12,padding:'10px 0',borderTop:'1px solid #eee'}}>
+              <div style={{fontWeight:500,marginBottom:6}}>الأرصدة المرحّلة لسنة {year+1}</div>
+              <div className="grid2">
+                {[['النقدية',closings[year].closingCash],['المخزون',closings[year].invVal],['ذمم مدينة',closings[year].recv],['ذمم دائنة',closings[year].pay]].map(([l,v])=>(
+                  <div key={l} style={{fontSize:13}}><span style={{color:'#888'}}>{l}: </span><strong>{fmt(v)} ج.م</strong></div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      ):(
+        <div>
+          {/* خطوات */}
+          <div style={{display:'flex',gap:0,marginBottom:20,background:'#fff',borderRadius:12,border:'0.5px solid #e0e0e0',overflow:'hidden'}}>
+            {['مراجعة النتائج','مراجعة الأرصدة','تأكيد الإقفال'].map((s,i)=>(
+              <div key={i} onClick={()=>setStep(i)} style={{flex:1,padding:'10px 6px',textAlign:'center',fontSize:12,cursor:'pointer',background:step===i?'#4a90d9':'transparent',color:step===i?'#fff':'#666',borderLeft:i>0?'0.5px solid #e0e0e0':'none',fontWeight:step===i?500:400}}>
+                <div style={{fontSize:16,marginBottom:2}}>{['📊','💰','✅'][i]}</div>
+                {s}
+              </div>
+            ))}
+          </div>
+
+          {step===0&&(
+            <div className="card">
+              <div style={{fontWeight:500,marginBottom:12}}>📊 نتائج سنة {year}</div>
+              <Row l="إيرادات المبيعات" v={revenue}/>
+              <Row l="(-) تكلفة البضاعة المباعة" v={cogs} color="#c62828"/>
+              <Row l="= مجمل الربح" v={gross} bold color={gross>=0?'#2e7d32':'#c62828'}/>
+              <Row l="(-) إجمالي المصاريف" v={totalExp} color="#c62828"/>
+              <div style={{display:'flex',justifyContent:'space-between',padding:'12px 0',fontSize:17,fontWeight:700,borderTop:'2px solid #333',marginTop:8}}>
+                <span>صافي الربح / الخسارة</span>
+                <span style={{color:netProfit>=0?'#2e7d32':'#c62828'}}>{fmt(netProfit)} ج.م</span>
+              </div>
+              <div style={{marginTop:12,fontSize:13,color:'#666'}}>
+                <span>{sales.length} فاتورة بيع</span> &nbsp;|&nbsp; <span>{purchases.length} فاتورة شراء</span> &nbsp;|&nbsp; <span>{expenses.length} قيد مصاريف</span>
+              </div>
+              <button className="primary" style={{marginTop:14}} onClick={()=>setStep(1)}>التالي ←</button>
+            </div>
+          )}
+
+          {step===1&&(
+            <div className="card">
+              <div style={{fontWeight:500,marginBottom:12}}>💰 أرصدة نهاية سنة {year}</div>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:12,marginBottom:14}}>
+                {[
+                  {l:'النقدية الختامية',v:closingCash,c:'blue'},
+                  {l:'قيمة المخزون',v:invVal,c:'blue'},
+                  {l:'ذمم مدينة (عملاء)',v:recv,c:'blue'},
+                  {l:'ذمم دائنة (موردون)',v:pay,c:'red'},
+                  {l:'صافي الربح',v:netProfit,c:netProfit>=0?'green':'red'},
+                ].map(x=>(
+                  <div key={x.l} className="stat">
+                    <div className="stat-label">{x.l}</div>
+                    <div className={'stat-val '+x.c}>{fmt(x.v)} <span style={{fontSize:12,fontWeight:400}}>ج.م</span></div>
+                  </div>
+                ))}
+              </div>
+              <div style={{background:'#e3f2fd',borderRadius:10,padding:12,marginBottom:14}}>
+                <div style={{fontWeight:500,marginBottom:6,color:'#1565c0'}}>🔄 سيتم ترحيل هذه الأرصدة لسنة {year+1}</div>
+                <div style={{fontSize:13,color:'#555'}}>النقدية: {fmt(closingCash)} | المخزون: {fmt(invVal)} | الذمم المدينة: {fmt(recv+(+openOB.receivables||0))} | الذمم الدائنة: {fmt(pay+(+openOB.payables||0))}</div>
+              </div>
+              <div style={{display:'flex',gap:8}}>
+                <button onClick={()=>setStep(0)}>← رجوع</button>
+                <button className="primary" onClick={()=>setStep(2)}>التالي ←</button>
+              </div>
+            </div>
+          )}
+
+          {step===2&&(
+            <div className="card">
+              <div style={{fontWeight:500,marginBottom:12,fontSize:16}}>✅ تأكيد إقفال سنة {year}</div>
+              <div style={{background:'#fff8e1',border:'0.5px solid #f9a825',borderRadius:10,padding:14,marginBottom:16}}>
+                <div style={{fontWeight:500,color:'#e65100',marginBottom:8}}>⚠️ تنبيهات مهمة قبل الإقفال:</div>
+                <div style={{fontSize:13,color:'#555',lineHeight:1.8}}>
+                  ✔️ تأكد من مراجعة كل الفواتير والمصاريف لسنة {year}<br/>
+                  ✔️ تأكد من تسوية كل الذمم المدينة والدائنة<br/>
+                  ✔️ خد نسخة احتياطية من البيانات قبل الإقفال<br/>
+                  ✔️ بعد الإقفال سيتم ترحيل الأرصدة لسنة {year+1} تلقائياً
+                </div>
+              </div>
+              <div style={{background:'#f5f5f0',borderRadius:10,padding:12,marginBottom:16,fontSize:14}}>
+                <div style={{fontWeight:500,marginBottom:6}}>ملخص الإقفال:</div>
+                <div>صافي الربح: <strong style={{color:netProfit>=0?'#2e7d32':'#c62828'}}>{fmt(netProfit)} ج.م</strong></div>
+                <div>رصيد النقدية المرحّل: <strong className="blue">{fmt(closingCash)} ج.م</strong></div>
+                <div>قيمة المخزون المرحّلة: <strong className="blue">{fmt(invVal)} ج.م</strong></div>
+              </div>
+              <div style={{display:'flex',gap:8}}>
+                <button onClick={()=>setStep(1)}>← رجوع</button>
+                <button onClick={doClose} style={{background:'#2e7d32',color:'#fff',border:'0.5px solid #2e7d32',fontWeight:500,padding:'9px 20px'}}>
+                  ✅ تأكيد إقفال سنة {year} والترحيل
+                </button>
+              </div>
+            </div>
+          )}
+
+          {step===3&&(
+            <div style={{background:'#e8f5e9',border:'0.5px solid #a5d6a7',borderRadius:12,padding:24,textAlign:'center'}}>
+              <div style={{fontSize:40,marginBottom:10}}>🎉</div>
+              <div style={{fontSize:18,fontWeight:700,color:'#2e7d32',marginBottom:6}}>تم إقفال سنة {year} بنجاح!</div>
+              <div style={{fontSize:14,color:'#555'}}>تم ترحيل الأرصدة لسنة {year+1} تلقائياً</div>
+            </div>
+          )}
+
+          {/* سجل الإقفالات */}
+          {Object.keys(closings).length>0&&(
+            <div className="card" style={{marginTop:16}}>
+              <div style={{fontWeight:500,marginBottom:10}}>📋 سجل إقفال السنوات</div>
+              <table>
+                <thead><tr><th>السنة</th><th>صافي الربح</th><th>النقدية الختامية</th><th>المخزون</th><th>تاريخ الإقفال</th><th>بواسطة</th></tr></thead>
+                <tbody>
+                  {Object.values(closings).sort((a,b)=>b.year-a.year).map(c=>(
+                    <tr key={c.year}>
+                      <td style={{fontWeight:500}}>{c.year}</td>
+                      <td className={c.netProfit>=0?'green':'red'} style={{fontWeight:500}}>{fmt(c.netProfit)}</td>
+                      <td className="blue">{fmt(c.closingCash)}</td>
+                      <td>{fmt(c.invVal)}</td>
+                      <td style={{fontSize:12}}>{c.closedAt}</td>
+                      <td style={{fontSize:11,color:'#888'}}>{c.closedBy}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ══ BACKUP ══ */
+function Backup({data,update,user}){
+  const [msg,setMsg]=useState('');
+  const show=(m)=>{setMsg(m);setTimeout(()=>setMsg(''),3000);};
+  const exportJSON=()=>{
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;
+    const d=new Date();
+    a.download=`sharaf_${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}.json`;
+    a.click();URL.revokeObjectURL(url);
+    show('✅ تم تحميل النسخة الاحتياطية!');
+  };
+  const exportCSV=()=>{
+    const rows=[['نوع','التاريخ','الاسم','الإجمالي','الربح','الحالة','بواسطة']];
+    (data.sales||[]).forEach(s=>rows.push(['مبيعات',s.date,s.customerName||'نقدي',s.total,s.profit||0,s.paid>=s.total?'مدفوعة':'جزئي',s.createdByName||'']));
+    (data.purchases||[]).forEach(s=>rows.push(['مشتريات',s.date,s.supplierName||'نقدي',s.total,0,s.paid>=s.total?'مدفوعة':'جزئي',s.createdByName||'']));
+    (data.expenses||[]).forEach(e=>rows.push(['مصروف',e.date,e.category,e.amount,0,'—',e.createdByName||'']));
+    const csv=rows.map(r=>r.join(',')).join('\n');
+    const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download='sharaf_report.csv';a.click();URL.revokeObjectURL(url);
+    show('✅ تم تصدير CSV!');
+  };
+  const importJSON=(e)=>{
+    const file=e.target.files[0];if(!file)return;
+    const reader=new FileReader();
+    reader.onload=ev=>{try{const parsed=JSON.parse(ev.target.result);if(window.confirm('ده هيستبدل كل البيانات! متأكد؟')){update(()=>parsed,'استيراد بيانات من ملف');show('✅ تم الاستيراد!');}}catch{show('❌ ملف خطأ!');}};
+    reader.readAsText(file);e.target.value='';
+  };
+  const clearAll=()=>{
+    if(window.confirm('⚠️ سيمسح كل البيانات نهائياً!')){if(window.confirm('متأكد تماماً؟')){update(()=>INIT,'مسح كل البيانات');show('تم المسح');}}
+  };
+  const stats=[
+    {l:'عملاء'  ,v:(data.customers||[]).length},
+    {l:'موردون' ,v:(data.suppliers||[]).length},
+    {l:'أصناف'  ,v:(data.inventory||[]).length},
+    {l:'مبيعات' ,v:(data.sales||[]).length},
+    {l:'مشتريات',v:(data.purchases||[]).length},
+    {l:'مصاريف' ,v:(data.expenses||[]).length},
+    {l:'سجلات النشاط',v:(data.activityLog||[]).length},
+  ];
+  return(
+    <div>
+      <h2>💾 البيك أب وقاعدة البيانات</h2>
+      {msg&&<div style={{background:'#e8f5e9',border:'0.5px solid #a5d6a7',borderRadius:10,padding:12,marginBottom:14,fontWeight:500,color:'#2e7d32'}}>{msg}</div>}
+      <div className="card">
+        <div style={{fontWeight:500,marginBottom:10}}>📊 إحصائيات قاعدة البيانات</div>
+        <div className="grid3">{stats.map(s=><div key={s.l} className="stat"><div className="stat-label">{s.l}</div><div className="stat-val blue">{s.v}</div></div>)}</div>
+      </div>
+      <div className="card">
+        <div style={{fontWeight:500,marginBottom:10}}>📤 تصدير البيانات</div>
+        <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+          <button className="primary" onClick={exportJSON} style={{flex:1,minWidth:150}}>⬇️ نسخة احتياطية JSON</button>
+          <button onClick={exportCSV} style={{flex:1,minWidth:150,background:'#e8f5e9',border:'0.5px solid #a5d6a7',color:'#2e7d32'}}>📊 تصدير CSV/Excel</button>
+        </div>
+      </div>
+      <div className="card">
+        <div style={{fontWeight:500,marginBottom:10}}>📥 استيراد بيانات</div>
+        <label style={{display:'inline-block',padding:'9px 18px',background:'#e3f2fd',border:'0.5px solid #90caf9',borderRadius:8,cursor:'pointer',color:'#1565c0',fontWeight:500}}>
+          📂 اختر ملف JSON
+          <input type="file" accept=".json" onChange={importJSON} style={{display:'none'}}/>
+        </label>
+        <div style={{marginTop:8,fontSize:12,color:'#e65100'}}>⚠️ سيستبدل كل البيانات الحالية!</div>
+      </div>
+      <div className="card" style={{border:'0.5px solid #ffcdd2'}}>
+        <div style={{fontWeight:500,color:'#c62828',marginBottom:8}}>🗑️ مسح كل البيانات</div>
+        <button onClick={clearAll} style={{background:'#ffebee',border:'0.5px solid #ef9a9a',color:'#c62828',fontWeight:500}}>مسح كل البيانات</button>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
